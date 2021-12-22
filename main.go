@@ -47,5 +47,5 @@ func main(){
 		fmt.Println(err.Error())
 		return
 	}
-	Portscan(Hosts,Ports)
+	Startscan(Hosts,Ports)
 }

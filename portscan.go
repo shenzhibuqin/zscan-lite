@@ -14,181 +14,11 @@ import (
 	"net"
 	"net/http"
 	"regexp"
-	"sort"
 	"strings"
-	"sync"
 	"time"
 )
 
-var httptitleResult sync.Map
-
-type ConnectMethod func(ip string, port int) (string, int, string, error)
-
-func Portscan(hosts []net.IP, ports []int) {
-	hosts=PingCheck(hosts)
-	var p *PortScan
-	p = NewPortScan(hosts, ports, ConnectPort)
-	r := p.Run()
-	Printresult(r)
-}
-
-type Openport struct {
-	ip     string
-	port   []int
-	banner map[int]string
-}
-
-type PortScan struct {
-	iplist          []net.IP
-	ports           []int
-	wg              sync.WaitGroup
-	taskch          chan IpPort
-	resultch        chan []string
-	tcpconn         ConnectMethod
-	result          map[string]*Openport
-	portscan_result sync.Map
-	tasknum         float64
-	donenum         float64
-}
-
-type IpPort struct {
-	ip   string
-	port int
-}
-
-type HttpInfo struct {
-	Host      string
-	Ports     string
-	Url       string
-	Timeout   time.Duration
-	title	  string
-	code      int
-}
-
-func NewPortScan(iplist []net.IP, ports []int, connect ConnectMethod) *PortScan {
-	return &PortScan{
-		iplist:   iplist,
-		ports:    ports,
-		taskch:   make(chan IpPort, Thread*2),
-		tcpconn:  connect,
-		resultch: make(chan []string, Thread*2),
-		result:   make(map[string]*Openport),
-		tasknum:  float64(len(iplist) * len(ports)),
-	}
-}
-
-func (p *PortScan) Run() map[string]*Openport {
-	go p.Gettasklist()
-	for i := 0; i < Thread; i++ {
-		go p.Startscan()
-	}
-	go p.bar()
-	time.Sleep(time.Second)
-	p.wg.Wait()
-	p.Getresult()
-	return p.result
-}
-
-func (p *PortScan) Gettasklist() {
-	p.wg.Add(1)
-	defer p.wg.Done()
-	for _, port := range p.ports {
-		for _, ip := range p.iplist {
-			ipPort := IpPort{ip: ip.String(), port: port}
-			p.taskch <- ipPort
-		}
-	}
-	close(p.taskch)
-}
-
-func (p *PortScan) Startscan() {
-	p.wg.Add(1)
-	defer p.wg.Done()
-	for ipPort := range p.taskch {
-		p.SaveResult(p.tcpconn(ipPort.ip, ipPort.port))
-		p.donenum += 1
-	}
-}
-
-func (p *PortScan) SaveResult(ip string, port int, banner string, err error) {
-	if err != nil {
-		return
-	}
-	v, ok := p.portscan_result.Load(ip)
-	if ok {
-		ports, ok1 := v.(map[int]string)
-		if ok1 {
-			ports[port] = banner
-			p.portscan_result.Store(ip, ports)
-		}
-	} else {
-		ports := make(map[int]string, 0)
-		ports[port] = banner
-		p.portscan_result.Store(ip, ports)
-	}
-}
-
-func (p *PortScan) Getresult() {
-	p.portscan_result.Range(func(key, value interface{}) bool {
-		v, ok := value.(map[int]string)
-		if ok {
-			port := []int{}
-			for i := range v {
-				port = append(port, i)
-			}
-			sort.Ints(port)
-			b := make(map[int]string)
-			for _, i := range port {
-				b[i] = v[i]
-			}
-			p.result[key.(string)] = &Openport{ip: key.(string), port: port, banner: b}
-		}
-		return true
-	})
-}
-
-func (p *PortScan) bar() {
-	for {
-		for _, r := range `-\|/` {
-			fmt.Printf("\r%c portscan:%4.2f%v %c", r, float64(p.donenum/p.tasknum*100), "%", r)
-			time.Sleep(200 * time.Millisecond)
-		}
-	}
-}
-
-func Printresult(r map[string]*Openport) {
-	Output(fmt.Sprintf("\n\r============================port result list=============================\n"))
-	Output(fmt.Sprintf("There are %v IP addresses in total\n", len(r)))
-	realIPs := make([]net.IP, 0, len(r))
-	for ip := range r {
-		realIPs = append(realIPs, net.ParseIP(ip))
-	}
-	for _, i := range sortip(realIPs) {
-		Output(fmt.Sprintf("Traget:%v\n", i))
-		for _, p := range r[i.String()].port {
-			banner:=r[i.String()].banner[p]
-			if len(banner) > 0 {
-				Output(fmt.Sprintf("  %v Banner:%v\n", p,banner))
-			} else {
-				Output(fmt.Sprintf("  %v\n", p))
-			}
-		}
-	}
-	Output(fmt.Sprintf("============================http result list=============================\n"))
-	httptitleResult.Range(func(key, value interface{}) bool {
-		Output(fmt.Sprintf("Traget:%v\n", key))
-		v, ok := value.(*HttpInfo)
-		if ok {
-			fmt.Print(v.Url)
-			Output(fmt.Sprintf("  code:%v", v.code))
-			Output(fmt.Sprintf("  title:%v", v.title))
-			fmt.Print("\n\n")
-		}
-		return true
-	})
-}
-
-func ConnectPort(ip string, port int) (string, int, string, error) {
+func StartPortScan(ip string, port int) (string, int, string, error) {
 	conn, err := Getconn(fmt.Sprintf("%v:%v", ip, port))
 	if conn != nil {
 		defer conn.Close()
@@ -248,7 +78,7 @@ func getTitle(info *HttpInfo) error {
 		req.Header.Set("Connection", "close")
 
 		var client = &http.Client{
-			Timeout:   Timeout,
+			Timeout: Timeout,
 		}
 
 		resp, err := client.Do(req)
@@ -266,7 +96,7 @@ func getTitle(info *HttpInfo) error {
 			find := re.FindSubmatch(body)
 			if len(find) > 1 {
 				text = find[1]
-				encode := GetEncoding(resp,body)
+				encode := GetEncoding(resp, body)
 				var encode2 string
 				detector := chardet.NewTextDetector()
 				detectorstr, _ := detector.DetectBest(body)
@@ -291,8 +121,8 @@ func getTitle(info *HttpInfo) error {
 			if len(title) > 100 {
 				title = title[:100]
 			}
-			info.title=title
-			info.code=resp.StatusCode
+			info.title = title
+			info.code = resp.StatusCode
 
 			return nil
 		}
@@ -330,8 +160,8 @@ func getRespBody(oResp *http.Response) ([]byte, error) {
 	return body, nil
 }
 
- func GetEncoding(resp *http.Response,body []byte) string {
- 	Charsets := []string{"utf-8", "gbk", "gb2312"}
+func GetEncoding(resp *http.Response, body []byte) string {
+	Charsets := []string{"utf-8", "gbk", "gb2312"}
 	r1, err := regexp.Compile(`(?im)charset=\s*?([\w-]+)`)
 	if err != nil {
 		return ""
