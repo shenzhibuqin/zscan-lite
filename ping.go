@@ -17,13 +17,13 @@ var (
 )
 
 func PingCheck(hosts []net.IP) []net.IP{
-	if Ping {
+	if noPing {
+		return hosts
+	}else {
 		checkedList := RunCheck(hosts)
 		checkedString:=strings.Join(checkedList,",")
 		res,_ :=ParseHosts(checkedString)
 		return res
-	}else {
-		return hosts
 	}
 }
 
