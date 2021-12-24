@@ -12,8 +12,7 @@ var httptitleResult sync.Map
 
 func Startscan(hosts []net.IP, ports []int) {
 	hosts = PingCheck(hosts)
-	var p *Scan
-	p = NewPortScan(hosts, ports)
+	p := NewPortScan(hosts, ports)
 	r := p.Run()
 	PrintResult(r)
 }
@@ -55,7 +54,7 @@ func NewPortScan(iplist []net.IP, ports []int) *Scan {
 		iplist:     iplist,
 		ports:      ports,
 		portscanch: make(chan IpPort, Thread*2),
-		winscanch: make(chan net.IP, Thread*2),
+		winscanch:  make(chan net.IP, Thread*2),
 		result:     make(map[string]*Openport),
 		tasknum:    float64(len(iplist)*len(ports) + len(iplist)),
 	}
@@ -64,14 +63,15 @@ func NewPortScan(iplist []net.IP, ports []int) *Scan {
 func (p *Scan) Run() map[string]*Openport {
 	go p.GetPortscanTaskList()
 	for i := 0; i < Thread; i++ {
+		p.wg.Add(1)
 		go p.GoPortscan()
 	}
 	go p.GetWinscanTaskList()
 	for i := 0; i < Thread; i++ {
+		p.wg.Add(1)
 		go p.GoWinscan()
 	}
 	go p.bar()
-	time.Sleep(time.Second)
 	p.wg.Wait()
 	p.GetResult()
 	return p.result
@@ -90,7 +90,6 @@ func (p *Scan) GetPortscanTaskList() {
 }
 
 func (p *Scan) GoPortscan() {
-	p.wg.Add(1)
 	defer p.wg.Done()
 	for ipPort := range p.portscanch {
 		p.SaveResult(StartPortScan(ipPort.ip, ipPort.port))
@@ -108,7 +107,6 @@ func (p *Scan) GetWinscanTaskList() {
 }
 
 func (p *Scan) GoWinscan() {
-	p.wg.Add(1)
 	defer p.wg.Done()
 	for ip := range p.winscanch {
 		p.SaveResult(StartWinScan(ip.String()))
@@ -128,7 +126,7 @@ func (p *Scan) SaveResult(ip string, port int, banner string, err error) {
 			p.tmpResult.Store(ip, ports)
 		}
 	} else {
-		ports := make(map[int]string, 0)
+		ports := make(map[int]string)
 		ports[port] = banner
 		p.tmpResult.Store(ip, ports)
 	}
@@ -163,7 +161,7 @@ func (p *Scan) bar() {
 }
 
 func PrintResult(r map[string]*Openport) {
-	Output(fmt.Sprintf("\n\r============================port result list=============================\n"))
+	Output("\n\r============================port result list=============================\n")
 	Output(fmt.Sprintf("There are %v IP addresses in total\n", len(r)))
 	realIPs := make([]net.IP, 0, len(r))
 	for ip := range r {
@@ -175,16 +173,16 @@ func PrintResult(r map[string]*Openport) {
 			banner := r[i.String()].banner[p]
 			if len(banner) > 0 {
 				if p == 0 {
-					Output(fmt.Sprintf("%v\n",banner))
+					Output(fmt.Sprintf("%v\n", banner))
 				} else {
 					Output(fmt.Sprintf("  %v Banner:%v\n", p, banner))
 				}
-			} else if p!=0 {
+			} else if p != 0 {
 				Output(fmt.Sprintf("  %v\n", p))
 			}
 		}
 	}
-	Output(fmt.Sprintf("============================http result list=============================\n"))
+	Output("============================http result list=============================\n")
 	httptitleResult.Range(func(key, value interface{}) bool {
 		Output(fmt.Sprintf("Traget:%v\n", key))
 		v, ok := value.(*HttpInfo)

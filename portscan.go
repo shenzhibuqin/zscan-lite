@@ -46,12 +46,10 @@ func getWebTitle(info *HttpInfo) {
 		protocol := GetProtocol(host, info.Timeout)
 		info.Url = fmt.Sprintf("%s://%s:%s", protocol, info.Host, info.Ports)
 	}
-
 	err := getTitle(info)
 	if err != nil {
 		return
 	}
-
 	httptitleResult.Store(fmt.Sprintf("%v:%v", info.Host, info.Ports), info)
 }
 
@@ -82,7 +80,6 @@ func getTitle(info *HttpInfo) error {
 		}
 
 		resp, err := client.Do(req)
-
 		if err == nil {
 			defer resp.Body.Close()
 			var title string
@@ -169,7 +166,7 @@ func GetEncoding(resp *http.Response, body []byte) string {
 	headerCharset := r1.FindString(resp.Header.Get("Content-Type"))
 	if headerCharset != "" {
 		for _, v := range Charsets {
-			if strings.Contains(strings.ToLower(headerCharset), v) == true {
+			if strings.Contains(strings.ToLower(headerCharset), v) {
 				return v
 			}
 		}
@@ -182,7 +179,7 @@ func GetEncoding(resp *http.Response, body []byte) string {
 	htmlCharset := r2.FindString(string(body))
 	if htmlCharset != "" {
 		for _, v := range Charsets {
-			if strings.Contains(strings.ToLower(htmlCharset), v) == true {
+			if strings.Contains(strings.ToLower(htmlCharset), v) {
 				return v
 			}
 		}

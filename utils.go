@@ -20,31 +20,31 @@ func ParseHosts(ipString string) ([]net.IP, error) {
 	return iplist, nil
 }
 
-func Output(context string){
+func Output(context string) {
 	fmt.Print(context)
 
-	file,err:=os.OpenFile(Outputfile,os.O_APPEND|os.O_WRONLY,0666)
+	file, err := os.OpenFile(Outputfile, os.O_APPEND|os.O_WRONLY, 0666)
 	defer file.Close()
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	_,err=file.Write([]byte(context))
+	_, err = file.Write([]byte(context))
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 }
 
 func CreatFile() error {
-	if Hosts=="" {
+	if Hosts == "" {
 		return nil
 	}
-	if Outputfile==""{
-		Outputfile=filename_filter(Hosts)+".txt"
+	if Outputfile == "" {
+		Outputfile = filename_filter(Hosts) + ".txt"
 	}
-	_,err:=os.Stat(Outputfile)
+	_, err := os.Stat(Outputfile)
 	if err != nil {
-		file,err:=os.Create(Outputfile)
-		if err!=nil {
+		file, err := os.Create(Outputfile)
+		if err != nil {
 			return err
 		}
 		defer file.Close()
@@ -52,15 +52,15 @@ func CreatFile() error {
 	return nil
 }
 
-func filename_filter(filename string)string{
-	f:= func(c rune) rune{
-		special:="\\/:*?<>|"
-		if strings.Contains(special,string(c)){
+func filename_filter(filename string) string {
+	f := func(c rune) rune {
+		special := "\\/:*?<>|"
+		if strings.Contains(special, string(c)) {
 			return '_'
 		}
 		return c
 	}
-	return strings.Map(f,filename)
+	return strings.Map(f, filename)
 }
 
 func ParsePorts(selection string) ([]int, error) {
@@ -75,21 +75,21 @@ func ParsePorts(selection string) ([]int, error) {
 		if strings.Contains(r, "-") {
 			parts := strings.Split(r, "-")
 			if len(parts) != 2 {
-				return nil, fmt.Errorf("Invalid port selection segment: '%s'", r)
+				return nil, fmt.Errorf("invalid port selection segment: '%s'", r)
 			}
 
 			p1, err := strconv.Atoi(parts[0])
 			if err != nil {
-				return nil, fmt.Errorf("Invalid port number: '%s'", parts[0])
+				return nil, fmt.Errorf("invalid port number: '%s'", parts[0])
 			}
 
 			p2, err := strconv.Atoi(parts[1])
 			if err != nil {
-				return nil, fmt.Errorf("Invalid port number: '%s'", parts[1])
+				return nil, fmt.Errorf("invalid port number: '%s'", parts[1])
 			}
 
 			if p1 > p2 {
-				return nil, fmt.Errorf("Invalid port range: %d-%d", p1, p2)
+				return nil, fmt.Errorf("invalid port range: %d-%d", p1, p2)
 			}
 
 			for i := p1; i <= p2; i++ {
@@ -98,7 +98,7 @@ func ParsePorts(selection string) ([]int, error) {
 
 		} else {
 			if port, err := strconv.Atoi(r); err != nil {
-				return nil, fmt.Errorf("Invalid port number: '%s'", r)
+				return nil, fmt.Errorf("invalid port number: '%s'", r)
 			} else {
 				ports = append(ports, port)
 			}
@@ -107,8 +107,8 @@ func ParsePorts(selection string) ([]int, error) {
 	return ports, nil
 }
 
-func Getconn(addr string) (net.Conn,error) {
-	return net.DialTimeout("tcp",addr,Timeout)
+func Getconn(addr string) (net.Conn, error) {
+	return net.DialTimeout("tcp", addr, Timeout)
 }
 
 func sortip(iplist []net.IP) []net.IP {
