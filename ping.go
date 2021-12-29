@@ -29,7 +29,7 @@ func PingCheck(hosts []net.IP) []net.IP{
 
 func RunCheck(hostslist []net.IP) []string {
 	Output(fmt.Sprintf("\n\r=========================living ip result list==========================\n"))
-	chanHosts := make(chan string, len(hostslist))
+	chanHosts := make(chan string, 255)
 	go func() {
 		for ip := range chanHosts {
 			Output(fmt.Sprintf("[ping] Find %v aliving\n",ip))
@@ -68,7 +68,7 @@ func RunPing(hostslist []net.IP, chanHosts chan string) {
 func ExecCommandPing(ip string) bool {
 	var command *exec.Cmd
 	if OS == "windows" {
-		command = exec.Command("cmd", "/c", "ping -n 1 -w 1 "+ip+" && echo true || echo false") //ping -c 1 -i 0.5 -t 4 -W 2 -w 5 "+ip+" >/dev/null && echo true || echo false"
+		command = exec.Command("cmd", "/c", "ping -n 1 -w 1000 "+ip+" && echo true || echo false") //ping -c 1 -i 0.5 -t 4 -W 2 -w 5 "+ip+" >/dev/null && echo true || echo false"
 	} else if OS == "linux" {
 		command = exec.Command("/bin/bash", "-c", "ping -c 1 -w 1 "+ip+" >/dev/null && echo true || echo false") //ping -c 1 -i 0.5 -t 4 -W 2 -w 5 "+ip+" >/dev/null && echo true || echo false"
 	} else if OS == "darwin" {

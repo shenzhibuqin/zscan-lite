@@ -19,7 +19,7 @@ func main(){
 	//fmt.Print(" ______     ______     ______     ______     __   __    \n/\\___  \\   /\\  ___\\   /\\  ___\\   /\\  __ \\   /\\ \"-.\\ \\   \n\\/_/  /__  \\ \\___  \\  \\ \\ \\____  \\ \\  __ \\  \\ \\ \\-.  \\  \n  /\\_____\\  \\/\\_____\\  \\ \\_____\\  \\ \\_\\ \\_\\  \\ \\_\\\\\"\\_\\ \n  \\/_____/   \\/_____/   \\/_____/   \\/_/\\/_/   \\/_/ \\/_/   --lite\n")
 
 
-	flag.IntVar(&Thread, "T", 100, "set threads eg:400")
+	flag.IntVar(&Thread, "T", 500, "set threads eg:400")
 	flag.DurationVar(&Timeout, "t", time.Second*3, "set timeout eg:2s")
 	flag.StringVar(&Hosts, "H", "", "set Hosts eg:127.0.0.1/24,192.168.0.1-18")
 	flag.StringVar(&ports, "p", "", "set ports eg:53-110,8080")

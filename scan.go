@@ -12,6 +12,9 @@ var httptitleResult sync.Map
 
 func Startscan(hosts []net.IP, ports []int) {
 	hosts = PingCheck(hosts)
+	if len(hosts)==0 {
+		return
+	}
 	p := NewPortScan(hosts, ports)
 	r := p.Run()
 	PrintResult(r)
